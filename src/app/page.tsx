@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { OrderCard } from "@/components/OrderCard";
+import { groupTodayOrders, isOpenStatus } from "@/lib/board";
 import { addDaysKey, dayEndExclusive, dayStart, formatLongDate, formatTime, todayKey } from "@/lib/dates";
 import { ordersBetween } from "@/lib/db";
 
 export default function TodayPage() {
   const today = todayKey();
   const tomorrow = addDaysKey(today, 1);
-  const todays = ordersBetween(dayStart(today), dayEndExclusive(today));
-  const tomorrows = ordersBetween(dayStart(tomorrow), dayEndExclusive(tomorrow));
-  const baking = todays.filter((order) => order.status === "baking");
-  const due = todays.filter((order) => order.status !== "baking" && order.status !== "ready");
-  const ready = todays.filter((order) => order.status === "ready");
+  const { open, baking, ready, due } = groupTodayOrders(
+    ordersBetween(dayStart(today), dayEndExclusive(today)),
+  );
+  const tomorrows = ordersBetween(dayStart(tomorrow), dayEndExclusive(tomorrow)).filter((order) =>
+    isOpenStatus(order.status),
+  );
 
   return (
     <main>
@@ -18,7 +20,7 @@ export default function TodayPage() {
       <h1 className="page-title">{formatLongDate(today)}</h1>
       <div className="grid-2">
         <div className="stat">
-          <b>{todays.length}</b>
+          <b>{open.length}</b>
           <span>due today</span>
         </div>
         <div className="stat">

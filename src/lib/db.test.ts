@@ -5,6 +5,7 @@ import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import {
   closeDb,
+  commitOrder,
   createCustomer,
   createOrder,
   getCustomer,
@@ -18,6 +19,7 @@ import {
   updateOrderStatus,
 } from "./db";
 import { seedDatabase } from "./seed";
+import { groupTodayOrders } from "./board";
 import { addDaysKey, atTime, dayEndExclusive, dayStart, todayKey } from "./dates";
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ovenboard-"));
@@ -84,4 +86,56 @@ test("seed data fills today and tomorrow so the board is not empty", () => {
     notes: "Updated note",
   });
   assert.equal(listCustomers().find((c) => c.id === first.id)?.notes, "Updated note");
+});
+
+test("parsePrice accepts whole amounts and rejects leftover characters", () => {
+  assert.equal(parsePrice(""), null);
+  assert.equal(parsePrice("24.50"), 2450);
+  assert.equal(parsePrice("$1,200.00"), 120000);
+  assert.throws(() => parsePrice("12abc"));
+  assert.throws(() => parsePrice("12.345"));
+});
+
+test("a failed new-person order does not leave an orphan customer", () => {
+  const before = listCustomers().length;
+  assert.throws(() =>
+    commitOrder({
+      newCustomer: { name: "Orphan Guest", phone: "555-0999" },
+      order: {
+        due_at: atTime(todayKey(), 11, 0),
+        status: "confirmed",
+        fulfillment: "pickup",
+        items: [{ description: "   ", quantity: 1 }],
+      },
+    }),
+  );
+  assert.equal(listCustomers().length, before);
+  assert.equal(listCustomers("Orphan Guest").length, 0);
+});
+
+test("today's board hides picked up and delivered orders from pending work", () => {
+  const customer = createCustomer({ name: "Done Today" });
+  const due = atTime(todayKey(), 15, 0);
+  const picked = createOrder({
+    customer_id: customer.id,
+    due_at: due,
+    status: "picked_up",
+    fulfillment: "pickup",
+    items: [{ description: "Cookies", quantity: 6 }],
+  });
+  const baking = createOrder({
+    customer_id: customer.id,
+    due_at: due,
+    status: "baking",
+    fulfillment: "pickup",
+    items: [{ description: "Loaf", quantity: 1 }],
+  });
+  const grouped = groupTodayOrders([picked, baking]);
+  assert.equal(grouped.open.length, 1);
+  assert.equal(grouped.baking[0].id, baking.id);
+  assert.equal(grouped.due.length, 0);
+  assert.equal(
+    grouped.open.some((order) => order.status === "picked_up"),
+    false,
+  );
 });

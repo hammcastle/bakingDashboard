@@ -2,14 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import {
-  createCustomer,
-  createOrder,
-  parsePrice,
-  updateCustomer,
-  updateOrder,
-  updateOrderStatus,
-} from "./db";
+import { commitOrder, createCustomer, parsePrice, updateCustomer, updateOrderStatus } from "./db";
 import type { Fulfillment, OrderStatus } from "./types";
 import { FULFILLMENTS, ORDER_STATUSES } from "./types";
 
@@ -63,31 +56,36 @@ export async function saveCustomerAction(formData: FormData): Promise<void> {
 
 export async function saveOrderAction(formData: FormData): Promise<void> {
   const idRaw = optional(formData, "id");
-  let customerId = Number(formData.get("customer_id") || 0);
+  const customerId = Number(formData.get("customer_id") || 0);
   const newName = optional(formData, "new_customer_name");
-  if (newName) {
-    const customer = createCustomer({
-      name: newName,
-      phone: optional(formData, "new_customer_phone"),
-      email: optional(formData, "new_customer_email"),
-    });
-    customerId = customer.id;
+  const items = parseItems(formData);
+  if (!items.some((item) => item.description.trim())) {
+    throw new Error("Add at least one item");
   }
-  if (!customerId) throw new Error("Choose a customer");
-
   const date = required(formData, "due_date");
   const time = required(formData, "due_time");
   const order = {
-    customer_id: customerId,
     due_at: `${date}T${time}`,
     status: parseStatus(required(formData, "status")),
     fulfillment: parseFulfillment(required(formData, "fulfillment")),
     price_cents: parsePrice(optional(formData, "price")),
     notes: optional(formData, "notes"),
-    items: parseItems(formData),
+    items,
   };
+  if (!newName && !customerId) throw new Error("Choose a customer");
 
-  const saved = idRaw ? updateOrder(Number(idRaw), order) : createOrder(order);
+  const saved = commitOrder({
+    orderId: idRaw ? Number(idRaw) : undefined,
+    customerId: customerId || undefined,
+    newCustomer: newName
+      ? {
+          name: newName,
+          phone: optional(formData, "new_customer_phone"),
+          email: optional(formData, "new_customer_email"),
+        }
+      : undefined,
+    order,
+  });
   refresh();
   redirect(`/orders/${saved.id}`);
 }

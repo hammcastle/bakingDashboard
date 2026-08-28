@@ -120,6 +120,7 @@ export function OrderForm({
               value={line.description}
               onChange={(event) => setLine(index, { description: event.target.value })}
               placeholder="What are you baking?"
+              required={index === 0}
             />
             <input
               name="item_qty"

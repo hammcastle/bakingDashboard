@@ -315,9 +315,31 @@ export function nextStatus(order: Pick<Order, "status" | "fulfillment">): OrderS
 }
 
 export function parsePrice(raw: string): number | null {
-  const trimmed = raw.trim().replace(/^\$/, "");
+  const trimmed = raw.trim();
   if (!trimmed) return null;
-  const value = Number.parseFloat(trimmed);
+  const withoutDollar = trimmed.startsWith("$") ? trimmed.slice(1).trim() : trimmed;
+  if (!withoutDollar) return null;
+  if (!/^(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d{1,2})?$/.test(withoutDollar)) {
+    throw new Error("Price must be a number");
+  }
+  const value = Number.parseFloat(withoutDollar.replace(/,/g, ""));
   if (!Number.isFinite(value) || value < 0) throw new Error("Price must be a number");
   return Math.round(value * 100);
+}
+
+export function commitOrder(args: {
+  orderId?: number;
+  customerId?: number;
+  newCustomer?: CustomerInput;
+  order: Omit<OrderInput, "customer_id">;
+}): OrderView {
+  return getDb().transaction(() => {
+    let customerId = args.customerId || 0;
+    if (args.newCustomer?.name.trim()) {
+      customerId = createCustomer(args.newCustomer).id;
+    }
+    if (!customerId) throw new Error("Choose a customer");
+    const input: OrderInput = { ...args.order, customer_id: customerId };
+    return args.orderId ? updateOrder(args.orderId, input) : createOrder(input);
+  })();
 }
