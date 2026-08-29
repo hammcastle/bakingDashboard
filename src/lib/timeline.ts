@@ -21,10 +21,10 @@ export function parseAnchor(raw?: string, now = new Date()): string {
   return /^\d{4}-\d{2}-\d{2}$/.test(raw || "") ? raw! : todayKey(now);
 }
 
-/** Day = that date. Week = Mon–Sun. Month = four weeks from that Monday. */
+/** Day = that date. Week = seven days from the anchor (upcoming, not a Mon–Sun box). Month = four Mon–Sun weeks so the marks stay on a calendar. */
 export function rangeDays(anchor: string, zoom: Zoom): string[] {
   if (zoom === "day") return [anchor];
-  if (zoom === "week") return weekKeys(anchor);
+  if (zoom === "week") return Array.from({ length: 7 }, (_, i) => addDaysKey(anchor, i));
   const start = weekKeys(anchor)[0];
   return Array.from({ length: 28 }, (_, i) => addDaysKey(start, i));
 }
@@ -39,7 +39,7 @@ export function rangeHeading(days: string[], zoom: Zoom, now = new Date()): stri
   const today = todayKey(now);
   if (zoom === "day") return formatDayLabel(days[0], now);
   if (zoom === "week") {
-    return weekKeys(today)[0] === days[0] ? "This week" : "Week ahead";
+    return days[0] === today ? "This week" : "Week ahead";
   }
   return weekKeys(today)[0] === days[0] ? "Four weeks" : "Further out";
 }
