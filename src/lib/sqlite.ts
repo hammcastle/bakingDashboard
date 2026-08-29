@@ -10,6 +10,16 @@ export function openSqlite(file: string): SqlDatabase {
   return database;
 }
 
+/** node:sqlite rows have a null prototype; Next.js cannot send those to Client Components. */
+export function plainRow<T>(row: T): T {
+  if (row == null || typeof row !== "object") return row;
+  return { ...row };
+}
+
+export function plainRows<T>(rows: T[]): T[] {
+  return rows.map((row) => plainRow(row));
+}
+
 export function runTransaction<T>(database: SqlDatabase, fn: () => T): T {
   database.exec("BEGIN IMMEDIATE");
   try {

@@ -44,6 +44,7 @@ test("create a customer, order, change status, and see it on the schedule", () =
   });
   assert.equal(getCustomer(customer.id)?.name, "Cassandra Test");
   assert.equal(listCustomers("cass").length, 1);
+  assert.equal(Object.getPrototypeOf(listCustomers()[0]), Object.prototype);
 
   const due = atTime(todayKey(), 10, 0);
   const order = createOrder({

@@ -4,7 +4,7 @@ import { subtractHours } from "./dates";
 import { seedDatabase } from "./seed";
 import { formatPrice, statusLabel } from "./labels";
 import { DEFAULT_PRODUCT_PLANS, matchProductPlan, plannedSteps } from "./plan";
-import { openSqlite, runTransaction, type SqlDatabase } from "./sqlite";
+import { openSqlite, plainRow, plainRows, runTransaction, type SqlDatabase } from "./sqlite";
 import type {
   Customer,
   CustomerInput,
@@ -145,28 +145,33 @@ function mapOrder(row: Order & { customer_name: string; customer_phone: string }
        FROM order_items WHERE order_id = ? ORDER BY sort_order, id`,
     )
     .all(row.id) as OrderItem[];
-  return { ...row, items };
+  return plainRow({ ...plainRow(row), items: plainRows(items) });
 }
 
 export function listCustomers(search = ""): Customer[] {
   const q = search.trim();
   if (!q) {
-    return getDb()
-      .prepare("SELECT * FROM customers ORDER BY name COLLATE NOCASE")
-      .all() as Customer[];
+    return plainRows(
+      getDb()
+        .prepare("SELECT * FROM customers ORDER BY name COLLATE NOCASE")
+        .all() as Customer[],
+    );
   }
   const like = `%${q}%`;
-  return getDb()
-    .prepare(
-      `SELECT * FROM customers
+  return plainRows(
+    getDb()
+      .prepare(
+        `SELECT * FROM customers
        WHERE name LIKE @like OR phone LIKE @like OR email LIKE @like
        ORDER BY name COLLATE NOCASE`,
-    )
-    .all({ like }) as Customer[];
+      )
+      .all({ like }) as Customer[],
+  );
 }
 
 export function getCustomer(id: number): Customer | undefined {
-  return getDb().prepare("SELECT * FROM customers WHERE id = ?").get(id) as Customer | undefined;
+  const row = getDb().prepare("SELECT * FROM customers WHERE id = ?").get(id) as Customer | undefined;
+  return row ? plainRow(row) : undefined;
 }
 
 export function createCustomer(input: CustomerInput): Customer {
@@ -357,9 +362,11 @@ export function updateOrderStatus(id: number, status: OrderStatus): OrderView {
 }
 
 export function listProductPlans(): ProductPlan[] {
-  return getDb()
-    .prepare("SELECT * FROM product_plans ORDER BY is_default DESC, name COLLATE NOCASE")
-    .all() as ProductPlan[];
+  return plainRows(
+    getDb()
+      .prepare("SELECT * FROM product_plans ORDER BY is_default DESC, name COLLATE NOCASE")
+      .all() as ProductPlan[],
+  );
 }
 
 export function updateProductPlan(
@@ -377,7 +384,7 @@ export function updateProductPlan(
   const plan = getDb().prepare("SELECT * FROM product_plans WHERE id = ?").get(id) as ProductPlan | undefined;
   if (!plan) throw new Error("Product plan not found");
   rebuildAllWorkPlans();
-  return plan;
+  return plainRow(plan);
 }
 
 export function rebuildWorkForOrder(orderId: number): void {
@@ -412,9 +419,10 @@ export function rebuildAllWorkPlans(): void {
 }
 
 export function listWorkForOrder(orderId: number): WorkTaskView[] {
-  return getDb()
-    .prepare(
-      `SELECT t.*, c.name AS customer_name, i.description AS item_description,
+  return plainRows(
+    getDb()
+      .prepare(
+        `SELECT t.*, c.name AS customer_name, i.description AS item_description,
               i.quantity AS item_quantity, o.due_at, o.status AS order_status
        FROM work_tasks t
        JOIN orders o ON o.id = t.order_id
@@ -422,14 +430,16 @@ export function listWorkForOrder(orderId: number): WorkTaskView[] {
        JOIN order_items i ON i.id = t.item_id
        WHERE t.order_id = ?
        ORDER BY t.scheduled_at, t.sort_order, t.id`,
-    )
-    .all(orderId) as WorkTaskView[];
+      )
+      .all(orderId) as WorkTaskView[],
+  );
 }
 
 export function workBetween(start: string, endExclusive: string): WorkTaskView[] {
-  return getDb()
-    .prepare(
-      `SELECT t.*, c.name AS customer_name, i.description AS item_description,
+  return plainRows(
+    getDb()
+      .prepare(
+        `SELECT t.*, c.name AS customer_name, i.description AS item_description,
               i.quantity AS item_quantity, o.due_at, o.status AS order_status
        FROM work_tasks t
        JOIN orders o ON o.id = t.order_id
@@ -438,8 +448,9 @@ export function workBetween(start: string, endExclusive: string): WorkTaskView[]
        WHERE t.scheduled_at >= @start AND t.scheduled_at < @end
          AND o.status NOT IN ('cancelled', 'picked_up', 'delivered')
        ORDER BY t.scheduled_at, t.sort_order, t.id`,
-    )
-    .all({ start, end: endExclusive }) as WorkTaskView[];
+      )
+      .all({ start, end: endExclusive }) as WorkTaskView[],
+  );
 }
 
 export function setWorkTaskDone(id: number, done: boolean): void {
