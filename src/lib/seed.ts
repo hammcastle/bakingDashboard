@@ -1,5 +1,5 @@
-import type Database from "better-sqlite3";
 import { addDaysKey, atTime, todayKey } from "./dates";
+import { runTransaction, type SqlDatabase } from "./sqlite";
 import type { Fulfillment, OrderStatus } from "./types";
 
 type SeedOrder = {
@@ -12,7 +12,7 @@ type SeedOrder = {
   items: { description: string; quantity: number }[];
 };
 
-export function seedDatabase(db: Database.Database): void {
+export function seedDatabase(db: SqlDatabase): void {
   const today = todayKey();
   const tomorrow = addDaysKey(today, 1);
   const plus = (n: number) => addDaysKey(today, n);
@@ -175,7 +175,7 @@ export function seedDatabase(db: Database.Database): void {
      VALUES (@order_id, @description, @quantity, @sort_order)`,
   );
 
-  const insertAll = db.transaction(() => {
+  runTransaction(db, () => {
     for (const order of orders) {
       const info = insertOrder.run({
         customer_id: ids[order.customer],
@@ -198,5 +198,4 @@ export function seedDatabase(db: Database.Database): void {
       });
     }
   });
-  insertAll();
 }

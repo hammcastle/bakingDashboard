@@ -6,7 +6,7 @@ It tracks customers, orders, and the bake/pickup calendar. It is meant to be use
 
 ## Run locally
 
-Needs Node 20+.
+Needs Node **22.13+** (Node 26 is fine). There is no native addon to compile.
 
 ```bash
 npm install
@@ -35,8 +35,10 @@ Dates and times use the **local timezone of the machine running the app**.
 ## Stack
 
 - Next.js (App Router) + TypeScript
-- SQLite via `better-sqlite3` (`data/bakery.db`)
+- SQLite via Node's built-in `node:sqlite` (`data/bakery.db`) — no `better-sqlite3`, no compile step
 - Server-rendered pages, no signup, no cloud account
+
+This is the path that works on Joshua's Omarchy box with Node 26.7.0. `npm install` does not need build tools or a downgrade to Node 22.
 
 Single shared app on a laptop or a kitchen iPad is the v1 model. There is no public registration.
 

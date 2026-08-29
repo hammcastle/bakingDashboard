@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-import Database from "better-sqlite3";
 import { seedDatabase } from "./seed";
 import { formatPrice, statusLabel } from "./labels";
+import { openSqlite, runTransaction, type SqlDatabase } from "./sqlite";
 import type {
   Customer,
   CustomerInput,
@@ -16,19 +16,17 @@ import { ORDER_STATUSES } from "./types";
 
 export { formatPrice, statusLabel };
 
-let db: Database.Database | null = null;
+let db: SqlDatabase | null = null;
 
 export function dbPath(): string {
   return process.env.BAKERY_DB_PATH || path.join(process.cwd(), "data", "bakery.db");
 }
 
-export function getDb(): Database.Database {
+export function getDb(): SqlDatabase {
   if (db) return db;
   const file = dbPath();
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  db = new Database(file);
-  db.pragma("journal_mode = WAL");
-  db.pragma("foreign_keys = ON");
+  db = openSqlite(file);
   migrate(db);
   if (process.env.BAKERY_SKIP_SEED !== "1") {
     const count = db.prepare("SELECT COUNT(*) AS n FROM customers").get() as { n: number };
@@ -42,7 +40,7 @@ export function closeDb(): void {
   db = null;
 }
 
-function migrate(database: Database.Database): void {
+function migrate(database: SqlDatabase): void {
   database.exec(`
     CREATE TABLE IF NOT EXISTS customers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -333,7 +331,7 @@ export function commitOrder(args: {
   newCustomer?: CustomerInput;
   order: Omit<OrderInput, "customer_id">;
 }): OrderView {
-  return getDb().transaction(() => {
+  return runTransaction(getDb(), () => {
     let customerId = args.customerId || 0;
     if (args.newCustomer?.name.trim()) {
       customerId = createCustomer(args.newCustomer).id;
@@ -341,5 +339,5 @@ export function commitOrder(args: {
     if (!customerId) throw new Error("Choose a customer");
     const input: OrderInput = { ...args.order, customer_id: customerId };
     return args.orderId ? updateOrder(args.orderId, input) : createOrder(input);
-  })();
+  });
 }
