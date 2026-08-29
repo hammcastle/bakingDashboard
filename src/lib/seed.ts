@@ -117,6 +117,33 @@ export function seedDatabase(db: SqlDatabase): void {
       items: [{ description: "Chocolate chip cookies (nut-free)", quantity: 12 }],
     },
     {
+      customer: "Joshua Hamm",
+      due: atTime(today, 17, 0),
+      status: "confirmed",
+      fulfillment: "pickup",
+      price_cents: 900,
+      notes: "Extra loaf for dinner if the Saturday bake has room.",
+      items: [{ description: "Sourdough loaf", quantity: 1 }],
+    },
+    {
+      customer: "Parker family",
+      due: atTime(today, 16, 30),
+      status: "confirmed",
+      fulfillment: "pickup",
+      price_cents: 1400,
+      notes: "Saturday supper. Regular focaccia, not GF.",
+      items: [{ description: "Focaccia", quantity: 1 }],
+    },
+    {
+      customer: "Kim Alvarez",
+      due: atTime(today, 11, 0),
+      status: "confirmed",
+      fulfillment: "pickup",
+      price_cents: 1400,
+      notes: "Tasting loaf before the event cake. Same focaccia formula.",
+      items: [{ description: "Focaccia", quantity: 1 }],
+    },
+    {
       customer: "Maya Chen",
       due: atTime(tomorrow, 9, 0),
       status: "confirmed",
@@ -281,6 +308,42 @@ export function seedDatabase(db: SqlDatabase): void {
     price_cents: 2200,
     notes: "Nut-free batch. Label clearly.",
     items: [{ description: "Chocolate chip cookies (nut-free)", quantity: 12 }],
+  });
+  pushIfUpcoming({
+    customer: "Elena Vasquez",
+    due: atTime(thu(1), 9, 0),
+    status: "confirmed",
+    fulfillment: "pickup",
+    price_cents: 1800,
+    notes: "Weekday loaves in addition to Saturday. Extra dark crust.",
+    items: [{ description: "Sourdough loaf", quantity: 2 }],
+  });
+  pushIfUpcoming({
+    customer: "Maya Chen",
+    due: atTime(thu(1), 11, 0),
+    status: "confirmed",
+    fulfillment: "pickup",
+    price_cents: 1400,
+    notes: "Regular focaccia this time; wheat is fine for the office.",
+    items: [{ description: "Focaccia", quantity: 1 }],
+  });
+  pushIfUpcoming({
+    customer: "Joshua Hamm",
+    due: atTime(thu(1), 17, 0),
+    status: "inquiry",
+    fulfillment: "pickup",
+    price_cents: 1400,
+    notes: "Dinner focaccia if Thursday's bake has a tray free.",
+    items: [{ description: "Focaccia", quantity: 1 }],
+  });
+  pushIfUpcoming({
+    customer: "Kim Alvarez",
+    due: atTime(thu(1), 15, 0),
+    status: "confirmed",
+    fulfillment: "pickup",
+    price_cents: 6500,
+    notes: "Small tasting cake. Not the two-tier event cake.",
+    items: [{ description: "6-inch chocolate birthday cake", quantity: 1 }],
   });
   pushIfUpcoming({
     customer: "Maya Chen",

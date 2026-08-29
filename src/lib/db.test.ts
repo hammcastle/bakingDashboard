@@ -92,6 +92,19 @@ test("seed data fills today and tomorrow so the board is not empty", () => {
   );
   assert.ok(listCustomers().length >= 8);
   assert.ok(getOrder(todays[0].id));
+  const peoplePerItem = new Map<string, Set<string>>();
+  for (const order of [...todays, ...fourWeeks]) {
+    for (const item of order.items) {
+      const key = `${order.due_at.slice(0, 10)}|${item.description.toLowerCase()}`;
+      const names = peoplePerItem.get(key) ?? new Set<string>();
+      names.add(order.customer_name);
+      peoplePerItem.set(key, names);
+    }
+  }
+  assert.ok(
+    [...peoplePerItem.values()].some((names) => names.size >= 2),
+    "sample week should stack the same item across people so bake totals are obvious",
+  );
   const first = listCustomers()[0];
   updateCustomer(first.id, {
     name: first.name,

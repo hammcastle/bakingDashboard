@@ -67,6 +67,34 @@ export function productLine(order: Pick<OrderView, "items">): string {
   return `${parts[0]} +${parts.length - 1}`;
 }
 
+export type DayItemTotal = {
+  key: string;
+  description: string;
+  quantity: number;
+};
+
+/** Totals for each product due that day. Cancelled orders are off the book. */
+export function summarizeDayItems(
+  orders: Pick<OrderView, "status" | "items">[],
+): DayItemTotal[] {
+  const totals = new Map<string, DayItemTotal>();
+  for (const order of orders) {
+    if (order.status === "cancelled") continue;
+    for (const item of order.items) {
+      const description = item.description.trim();
+      if (!description) continue;
+      const key = description.toLowerCase();
+      const existing = totals.get(key);
+      if (existing) existing.quantity += item.quantity;
+      else totals.set(key, { key, description, quantity: item.quantity });
+    }
+  }
+  return [...totals.values()].sort((a, b) => {
+    if (b.quantity !== a.quantity) return b.quantity - a.quantity;
+    return a.description.localeCompare(b.description);
+  });
+}
+
 export function orderNames(orders: Pick<OrderView, "customer_name">[], max = 2): string {
   const names = orders.map((order) => order.customer_name);
   if (names.length <= max) return names.join(", ");

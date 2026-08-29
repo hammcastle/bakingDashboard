@@ -2,6 +2,8 @@
 
 Operations dashboard for **Cassandra's bakery**, used by Joshua Hamm to help her run it.
 
+Coding agents: start at [AGENTS.md](./AGENTS.md) (requirements and architecture live under `docs/`).
+
 It tracks customers, orders, and the bake calendar. The week is scheduled as **work** (feed starter, mix, form, proof, bake), not only pickups. It is meant to be used on a phone in a kitchen: large tap targets, a one-tap status advance, and a **+ Order** button on every screen.
 
 ## Run locally
@@ -30,7 +32,7 @@ Dates and times use the **local timezone of the machine running the app**.
 1. Add a customer (People → + Person), with phone/email and notes.
 2. Add an order (+ Order): pick an existing person or type a new one, add item lines, due date/time, pickup vs delivery, optional price, dietary/fulfillment notes.
 3. Change status from the order card or the order page: inquiry → confirmed → baking → ready → picked up or delivered (or cancelled).
-4. See **Today** as the work board, and **Week** as one upcoming timeline. Day / Week / Month changes density: work steps up close, order chips at week, dots and counts at month. Production steps are still counted backward from pickup.
+4. See **Today** as the work board, and **Week** as one upcoming timeline. Day / Week / Month changes density: work steps up close, people plus bake totals at week, dots and counts at month. Production steps are still counted backward from pickup.
 
 A first-time sourdough order with Thursday 9:00 pickup gets a plan without a recipe: feed starter Tuesday 8:00 PM, form Wednesday 2:00 PM, bake Thursday 7:00 AM. Cookies skip starter. Change the hour offsets on **Recipes** if a formula needs a longer rise. ChatGPT recipe import is still a later hook.
 

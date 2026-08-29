@@ -615,6 +615,45 @@ textarea { min-height: 88px; resize: vertical; }
   text-decoration: none;
 }
 
+.day-bake {
+  background: linear-gradient(160deg, #fff6e4 0%, #f7e0b8 100%);
+  border: 1px solid rgba(184, 70, 14, 0.18);
+  border-radius: 16px;
+  padding: 10px 12px 8px;
+  margin: 0 0 10px;
+}
+.day-bake-kicker {
+  margin: 0 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--copper);
+}
+.day-bake-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.day-bake-list li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  min-height: 36px;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: var(--flour);
+  border: 1px solid var(--line);
+  font-size: 0.9rem;
+}
+.day-bake-list b {
+  font-family: var(--font-display);
+  font-weight: 650;
+}
+
 @media (min-width: 720px) {
   .shell { padding-top: 20px; }
   .page-title { font-size: 2.4rem; }
