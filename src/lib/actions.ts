@@ -2,7 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { commitOrder, createCustomer, parsePrice, updateCustomer, updateOrderStatus } from "./db";
+import {
+  commitOrder,
+  createCustomer,
+  parsePrice,
+  setWorkTaskDone,
+  updateCustomer,
+  updateOrderStatus,
+  updateProductPlan,
+} from "./db";
 import type { Fulfillment, OrderStatus } from "./types";
 import { FULFILLMENTS, ORDER_STATUSES } from "./types";
 
@@ -92,5 +100,29 @@ export async function saveOrderAction(formData: FormData): Promise<void> {
 
 export async function setOrderStatusAction(orderId: number, status: OrderStatus): Promise<void> {
   updateOrderStatus(orderId, status);
+  refresh();
+}
+
+export async function setWorkTaskDoneAction(taskId: number, done: boolean): Promise<void> {
+  setWorkTaskDone(taskId, done);
+  refresh();
+}
+
+function parseHours(raw: string): number | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const value = Number.parseFloat(trimmed);
+  if (!Number.isFinite(value) || value < 0) throw new Error("Hours before pickup must be a number");
+  return value;
+}
+
+export async function saveProductPlanAction(formData: FormData): Promise<void> {
+  updateProductPlan(Number(required(formData, "id")), {
+    starter_hours: parseHours(optional(formData, "starter_hours")),
+    mix_hours: parseHours(optional(formData, "mix_hours")),
+    form_hours: parseHours(optional(formData, "form_hours")),
+    proof_hours: parseHours(optional(formData, "proof_hours")),
+    bake_hours: parseHours(optional(formData, "bake_hours")),
+  });
   refresh();
 }

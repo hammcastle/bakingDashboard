@@ -1,7 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
+import { subtractHours } from "./dates";
 import { seedDatabase } from "./seed";
 import { formatPrice, statusLabel } from "./labels";
+import { DEFAULT_PRODUCT_PLANS, matchProductPlan, plannedSteps } from "./plan";
 import { openSqlite, runTransaction, type SqlDatabase } from "./sqlite";
 import type {
   Customer,
@@ -11,6 +13,8 @@ import type {
   OrderItem,
   OrderStatus,
   OrderView,
+  ProductPlan,
+  WorkTaskView,
 } from "./types";
 import { ORDER_STATUSES } from "./types";
 
@@ -32,6 +36,7 @@ export function getDb(): SqlDatabase {
     const count = db.prepare("SELECT COUNT(*) AS n FROM customers").get() as { n: number };
     if (count.n === 0) seedDatabase(db);
   }
+  backfillWorkPlans(db);
   return db;
 }
 
@@ -74,7 +79,59 @@ function migrate(database: SqlDatabase): void {
     CREATE INDEX IF NOT EXISTS idx_orders_due_at ON orders(due_at);
     CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
     CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customer_id);
+
+    CREATE TABLE IF NOT EXISTS product_plans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      match_words TEXT NOT NULL DEFAULT '',
+      is_default INTEGER NOT NULL DEFAULT 0,
+      starter_hours REAL,
+      mix_hours REAL,
+      form_hours REAL,
+      proof_hours REAL,
+      bake_hours REAL
+    );
+
+    CREATE TABLE IF NOT EXISTS work_tasks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+      item_id INTEGER NOT NULL REFERENCES order_items(id) ON DELETE CASCADE,
+      step TEXT NOT NULL,
+      scheduled_at TEXT NOT NULL,
+      done INTEGER NOT NULL DEFAULT 0,
+      sort_order INTEGER NOT NULL DEFAULT 0
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_work_tasks_scheduled ON work_tasks(scheduled_at);
+    CREATE INDEX IF NOT EXISTS idx_work_tasks_order ON work_tasks(order_id);
   `);
+  ensureDefaultPlans(database);
+}
+
+function ensureDefaultPlans(database: SqlDatabase): void {
+  const count = database.prepare("SELECT COUNT(*) AS n FROM product_plans").get() as { n: number };
+  if (count.n > 0) return;
+  const insert = database.prepare(
+    `INSERT INTO product_plans
+      (name, match_words, is_default, starter_hours, mix_hours, form_hours, proof_hours, bake_hours)
+     VALUES (@name, @match_words, @is_default, @starter_hours, @mix_hours, @form_hours, @proof_hours, @bake_hours)`,
+  );
+  for (const plan of DEFAULT_PRODUCT_PLANS) insert.run(plan);
+}
+
+function backfillWorkPlans(database: SqlDatabase): void {
+  const missing = database
+    .prepare(
+      `SELECT o.id FROM orders o
+       LEFT JOIN work_tasks t ON t.order_id = o.id
+       WHERE t.id IS NULL`,
+    )
+    .all() as { id: number }[];
+  for (const order of missing) rebuildWorkForOrder(order.id);
+}
+
+export function ensureWorkPlans(): void {
+  backfillWorkPlans(getDb());
 }
 
 function nowIso(): string {
@@ -253,6 +310,7 @@ export function createOrder(input: OrderInput): OrderView {
     });
   const id = Number(info.lastInsertRowid);
   replaceItems(id, usableItems);
+  rebuildWorkForOrder(id);
   const order = getOrder(id);
   if (!order) throw new Error("Failed to create order");
   return order;
@@ -284,6 +342,7 @@ export function updateOrder(id: number, input: OrderInput): OrderView {
       updated_at: nowIso(),
     });
   replaceItems(id, usableItems);
+  rebuildWorkForOrder(id);
   return getOrder(id)!;
 }
 
@@ -295,6 +354,98 @@ export function updateOrderStatus(id: number, status: OrderStatus): OrderView {
     .prepare("UPDATE orders SET status = @status, updated_at = @updated_at WHERE id = @id")
     .run({ id, status, updated_at: nowIso() });
   return getOrder(id)!;
+}
+
+export function listProductPlans(): ProductPlan[] {
+  return getDb()
+    .prepare("SELECT * FROM product_plans ORDER BY is_default DESC, name COLLATE NOCASE")
+    .all() as ProductPlan[];
+}
+
+export function updateProductPlan(
+  id: number,
+  hours: Pick<ProductPlan, "starter_hours" | "mix_hours" | "form_hours" | "proof_hours" | "bake_hours">,
+): ProductPlan {
+  getDb()
+    .prepare(
+      `UPDATE product_plans
+       SET starter_hours = @starter_hours, mix_hours = @mix_hours, form_hours = @form_hours,
+           proof_hours = @proof_hours, bake_hours = @bake_hours
+       WHERE id = @id`,
+    )
+    .run({ id, ...hours });
+  const plan = getDb().prepare("SELECT * FROM product_plans WHERE id = ?").get(id) as ProductPlan | undefined;
+  if (!plan) throw new Error("Product plan not found");
+  rebuildAllWorkPlans();
+  return plan;
+}
+
+export function rebuildWorkForOrder(orderId: number): void {
+  const order = getOrder(orderId);
+  const database = getDb();
+  database.prepare("DELETE FROM work_tasks WHERE order_id = ?").run(orderId);
+  if (!order) return;
+  const plans = listProductPlans();
+  if (plans.length === 0) return;
+  const insert = database.prepare(
+    `INSERT INTO work_tasks (order_id, item_id, step, scheduled_at, done, sort_order)
+     VALUES (@order_id, @item_id, @step, @scheduled_at, 0, @sort_order)`,
+  );
+  let sort = 0;
+  for (const item of order.items) {
+    const plan = matchProductPlan(item.description, plans);
+    for (const task of plannedSteps(order.due_at, plan, subtractHours)) {
+      insert.run({
+        order_id: orderId,
+        item_id: item.id,
+        step: task.step,
+        scheduled_at: task.scheduled_at,
+        sort_order: sort++,
+      });
+    }
+  }
+}
+
+export function rebuildAllWorkPlans(): void {
+  const rows = getDb().prepare("SELECT id FROM orders").all() as { id: number }[];
+  for (const row of rows) rebuildWorkForOrder(row.id);
+}
+
+export function listWorkForOrder(orderId: number): WorkTaskView[] {
+  return getDb()
+    .prepare(
+      `SELECT t.*, c.name AS customer_name, i.description AS item_description,
+              i.quantity AS item_quantity, o.due_at, o.status AS order_status
+       FROM work_tasks t
+       JOIN orders o ON o.id = t.order_id
+       JOIN customers c ON c.id = o.customer_id
+       JOIN order_items i ON i.id = t.item_id
+       WHERE t.order_id = ?
+       ORDER BY t.scheduled_at, t.sort_order, t.id`,
+    )
+    .all(orderId) as WorkTaskView[];
+}
+
+export function workBetween(start: string, endExclusive: string): WorkTaskView[] {
+  return getDb()
+    .prepare(
+      `SELECT t.*, c.name AS customer_name, i.description AS item_description,
+              i.quantity AS item_quantity, o.due_at, o.status AS order_status
+       FROM work_tasks t
+       JOIN orders o ON o.id = t.order_id
+       JOIN customers c ON c.id = o.customer_id
+       JOIN order_items i ON i.id = t.item_id
+       WHERE t.scheduled_at >= @start AND t.scheduled_at < @end
+         AND o.status NOT IN ('cancelled', 'picked_up', 'delivered')
+       ORDER BY t.scheduled_at, t.sort_order, t.id`,
+    )
+    .all({ start, end: endExclusive }) as WorkTaskView[];
+}
+
+export function setWorkTaskDone(id: number, done: boolean): void {
+  getDb()
+    .prepare("UPDATE work_tasks SET done = @done WHERE id = @id")
+    .run({ id, done: done ? 1 : 0 });
 }
 
 export function nextStatus(order: Pick<Order, "status" | "fulfillment">): OrderStatus | null {

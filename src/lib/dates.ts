@@ -84,3 +84,22 @@ export function weekKeys(anchor: string): string[] {
 export function stampToDateInput(stamp: string): { date: string; time: string } {
   return { date: stamp.slice(0, 10), time: stamp.slice(11, 16) };
 }
+
+export function addHours(stamp: string, hours: number): string {
+  const [y, m, d] = stamp.slice(0, 10).split("-").map(Number);
+  const [hh, mm] = stamp.slice(11, 16).split(":").map(Number);
+  const date = new Date(y, m - 1, d, hh, mm);
+  date.setMinutes(date.getMinutes() + Math.round(hours * 60));
+  return toStamp(date);
+}
+
+export function subtractHours(stamp: string, hours: number): string {
+  return addHours(stamp, -hours);
+}
+
+export function formatWeekdayTime(stamp: string): string {
+  const [y, m, d] = stamp.slice(0, 10).split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  const weekday = date.toLocaleDateString(undefined, { weekday: "short" });
+  return `${weekday} ${formatTime(stamp)}`;
+}

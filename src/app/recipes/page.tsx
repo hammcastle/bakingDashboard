@@ -1,26 +1,24 @@
+import { ProductPlanForm } from "@/components/ProductPlanForm";
+import { listProductPlans } from "@/lib/db";
+
 export default function RecipesPage() {
+  const plans = listProductPlans();
   return (
     <main>
       <p className="page-kicker">Recipes</p>
       <h1 className="page-title">Recipe box</h1>
       <div className="hook">
         <p>
-          This is a placeholder for v1. Joshua will connect ChatGPT recipe imports later. Ovenboard
-          does not block on that — orders and the schedule work without a recipe library.
+          ChatGPT formula import comes later. These timings are enough to schedule the week: hours
+          before pickup for starter, mix, form, proof, and bake. Saving a row rebuilds open orders.
         </p>
       </div>
-      <article className="panel recipe-card">
-        <h3>Sourdough loaf</h3>
-        <p className="muted">Hook: paste or import a formula here. Not wired up yet.</p>
-      </article>
-      <article className="panel recipe-card">
-        <h3>Chocolate birthday cake</h3>
-        <p className="muted">Hook: scale a recipe to an order quantity later.</p>
-      </article>
-      <article className="panel recipe-card">
-        <h3>Nut-free cookies</h3>
-        <p className="muted">Hook: flag dietary recipes against order notes later.</p>
-      </article>
+      {plans.map((plan) => (
+        <article key={plan.id} className="panel recipe-card">
+          <h3>{plan.name}</h3>
+          <ProductPlanForm plan={plan} />
+        </article>
+      ))}
     </main>
   );
 }

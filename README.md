@@ -2,7 +2,7 @@
 
 Operations dashboard for **Cassandra's bakery**, used by Joshua Hamm to help her run it.
 
-It tracks customers, orders, and the bake/pickup calendar. It is meant to be used on a phone in a kitchen: large tap targets, a one-tap status advance, and a **+ Order** button on every screen.
+It tracks customers, orders, and the bake calendar. The week is scheduled as **work** (feed starter, mix, form, proof, bake), not only pickups. It is meant to be used on a phone in a kitchen: large tap targets, a one-tap status advance, and a **+ Order** button on every screen.
 
 ## Run locally
 
@@ -30,7 +30,9 @@ Dates and times use the **local timezone of the machine running the app**.
 1. Add a customer (People → + Person), with phone/email and notes.
 2. Add an order (+ Order): pick an existing person or type a new one, add item lines, due date/time, pickup vs delivery, optional price, dietary/fulfillment notes.
 3. Change status from the order card or the order page: inquiry → confirmed → baking → ready → picked up or delivered (or cancelled).
-4. See the work on **Today** (including tomorrow at a glance) and **Week**.
+4. See **Today** and **Week** as a work board: starter, mix, form, proof, and bake counted backward from pickup, plus the hand-off times.
+
+A first-time sourdough order with Thursday 9:00 pickup gets a plan without a recipe: feed starter Tuesday 8:00 PM, form Wednesday 2:00 PM, bake Thursday 7:00 AM. Cookies skip starter. Change the hour offsets on **Recipes** if a formula needs a longer rise. ChatGPT recipe import is still a later hook.
 
 ## Stack
 
@@ -44,7 +46,7 @@ Single shared app on a laptop or a kitchen iPad is the v1 model. There is no pub
 
 ## Out of scope (hooks only)
 
-- **Recipes:** `/recipes` is a placeholder. ChatGPT recipe import comes later.
+- **Recipes:** `/recipes` holds product timing defaults (hours before pickup). ChatGPT formula import comes later.
 - Payments, inventory, accounting, and multi-user auth are not in v1.
 
 ## Sample data

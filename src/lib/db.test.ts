@@ -11,12 +11,16 @@ import {
   getCustomer,
   getDb,
   getOrder,
+  ensureWorkPlans,
   listCustomers,
+  listWorkForOrder,
   nextStatus,
   ordersBetween,
   parsePrice,
   updateCustomer,
+  updateOrder,
   updateOrderStatus,
+  workBetween,
 } from "./db";
 import { seedDatabase } from "./seed";
 import { groupTodayOrders } from "./board";
@@ -72,6 +76,7 @@ test("seed data fills today and tomorrow so the board is not empty", () => {
   closeDb();
   process.env.BAKERY_SKIP_SEED = "1";
   seedDatabase(getDb());
+  ensureWorkPlans();
   const today = todayKey();
   const tomorrow = addDaysKey(today, 1);
   const todays = ordersBetween(dayStart(today), dayEndExclusive(today));
@@ -138,4 +143,52 @@ test("today's board hides picked up and delivered orders from pending work", () 
     grouped.open.some((order) => order.status === "picked_up"),
     false,
   );
+});
+
+test("Thursday 9am sourdough pickup schedules starter Tuesday 8pm and bake Thursday 7am", () => {
+  const customer = createCustomer({ name: "Thursday Loaf" });
+  const order = createOrder({
+    customer_id: customer.id,
+    due_at: "2026-09-03T09:00",
+    status: "confirmed",
+    fulfillment: "pickup",
+    items: [{ description: "Sourdough loaf", quantity: 2 }],
+  });
+  const tasks = listWorkForOrder(order.id);
+  const byStep = Object.fromEntries(tasks.map((task) => [task.step, task.scheduled_at]));
+  assert.equal(byStep.starter, "2026-09-01T20:00");
+  assert.equal(byStep.form, "2026-09-02T14:00");
+  assert.equal(byStep.bake, "2026-09-03T07:00");
+  const tuesday = workBetween("2026-09-01T00:00", "2026-09-02T00:00");
+  assert.ok(tuesday.some((task) => task.order_id === order.id && task.step === "starter"));
+
+  const moved = updateOrder(order.id, {
+    customer_id: customer.id,
+    due_at: "2026-09-04T09:00",
+    status: "confirmed",
+    fulfillment: "pickup",
+    items: [{ description: "Sourdough loaf", quantity: 2 }],
+  });
+  const rebaked = listWorkForOrder(moved.id).find((task) => task.step === "bake");
+  assert.equal(rebaked?.scheduled_at, "2026-09-04T07:00");
+});
+
+test("cookies skip starter and still get a bake step", () => {
+  const customer = createCustomer({ name: "Cookie Tray" });
+  const order = createOrder({
+    customer_id: customer.id,
+    due_at: "2026-09-03T16:00",
+    status: "confirmed",
+    fulfillment: "pickup",
+    items: [{ description: "Chocolate chip cookies", quantity: 12 }],
+  });
+  const tasks = listWorkForOrder(order.id);
+  assert.equal(tasks.some((task) => task.step === "starter"), false);
+  assert.ok(tasks.some((task) => task.step === "bake"));
+});
+
+test("seed data puts bakery work on the board, not only pickups", () => {
+  const today = todayKey();
+  const workToday = workBetween(dayStart(today), dayEndExclusive(today));
+  assert.ok(workToday.length >= 1, "today should list production steps");
 });

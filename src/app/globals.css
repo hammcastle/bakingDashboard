@@ -440,6 +440,44 @@ textarea { min-height: 88px; resize: vertical; }
   margin: 12px 0;
 }
 
+.work-card {
+  background: var(--flour);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 14px;
+  margin-bottom: 10px;
+}
+.work-card.is-done,
+.work-plan li.is-done {
+  opacity: 0.55;
+}
+.step-starter { background: #efe6da; }
+.step-mix { background: #f5c89a; }
+.step-form { background: #e6d5c4; }
+.step-proof { background: #d7e4f2; }
+.step-bake { background: #f0c75e; }
+
+.work-plan {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.work-plan li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.hours-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
 @media (min-width: 720px) {
   .shell { padding-top: 20px; }
   .page-title { font-size: 2.4rem; }

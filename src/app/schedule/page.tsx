@@ -1,15 +1,15 @@
 import Link from "next/link";
 import { OrderCard } from "@/components/OrderCard";
+import { WorkTaskCard } from "@/components/WorkTaskCard";
 import {
   addDaysKey,
-  dayEndExclusive,
   dayStart,
   formatDayLabel,
   formatWeekdayDate,
   todayKey,
   weekKeys,
 } from "@/lib/dates";
-import { ordersBetween } from "@/lib/db";
+import { ordersBetween, workBetween } from "@/lib/db";
 
 export default async function SchedulePage({
   searchParams,
@@ -23,6 +23,7 @@ export default async function SchedulePage({
   const weekStart = days[0];
   const weekEnd = addDaysKey(days[6], 1);
   const orders = ordersBetween(dayStart(weekStart), dayStart(weekEnd));
+  const work = workBetween(dayStart(weekStart), dayStart(weekEnd));
   const prev = addDaysKey(weekStart, -7);
   const next = addDaysKey(weekStart, 7);
 
@@ -31,7 +32,7 @@ export default async function SchedulePage({
       <p className="page-kicker">Schedule</p>
       <h1 className="page-title">This week</h1>
       <p className="lede">
-        {formatWeekdayDate(days[0])} – {formatWeekdayDate(days[6])}
+        {formatWeekdayDate(days[0])} – {formatWeekdayDate(days[6])}. Work steps first, then pickups.
       </p>
       <div className="row-between" style={{ marginBottom: 12 }}>
         <Link className="btn btn-ghost btn-small" href={`/schedule?from=${prev}`}>
@@ -52,18 +53,19 @@ export default async function SchedulePage({
         ))}
       </div>
       {days.map((day) => {
+        const dayWork = work.filter((task) => task.scheduled_at.startsWith(day));
         const dayOrders = orders.filter((order) => order.due_at.startsWith(day));
         return (
           <section key={day} id={`day-${day}`} className={`week-day ${day === today ? "today" : ""}`}>
             <h2 className="section-title">
               {formatDayLabel(day)}
-              <span className="muted">{dayOrders.length}</span>
+              <span className="muted">
+                {dayWork.length} work · {dayOrders.length} pickup
+              </span>
             </h2>
-            {dayOrders.length ? (
-              dayOrders.map((order) => <OrderCard key={order.id} order={order} />)
-            ) : (
-              <p className="muted">Quiet day.</p>
-            )}
+            {dayWork.length ? dayWork.map((task) => <WorkTaskCard key={task.id} task={task} />) : null}
+            {dayOrders.length ? dayOrders.map((order) => <OrderCard key={order.id} order={order} />) : null}
+            {!dayWork.length && !dayOrders.length ? <p className="muted">Quiet day.</p> : null}
           </section>
         );
       })}
