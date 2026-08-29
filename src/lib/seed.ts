@@ -311,7 +311,7 @@ export function seedDatabase(db: SqlDatabase): void {
   });
   pushIfUpcoming({
     customer: "Elena Vasquez",
-    due: atTime(thu(1), 9, 0),
+    due: atTime(thu(0), 9, 0),
     status: "confirmed",
     fulfillment: "pickup",
     price_cents: 1800,
@@ -320,7 +320,7 @@ export function seedDatabase(db: SqlDatabase): void {
   });
   pushIfUpcoming({
     customer: "Maya Chen",
-    due: atTime(thu(1), 11, 0),
+    due: atTime(thu(0), 11, 0),
     status: "confirmed",
     fulfillment: "pickup",
     price_cents: 1400,
@@ -329,7 +329,7 @@ export function seedDatabase(db: SqlDatabase): void {
   });
   pushIfUpcoming({
     customer: "Joshua Hamm",
-    due: atTime(thu(1), 17, 0),
+    due: atTime(thu(0), 17, 0),
     status: "inquiry",
     fulfillment: "pickup",
     price_cents: 1400,
@@ -338,7 +338,7 @@ export function seedDatabase(db: SqlDatabase): void {
   });
   pushIfUpcoming({
     customer: "Kim Alvarez",
-    due: atTime(thu(1), 15, 0),
+    due: atTime(thu(0), 15, 0),
     status: "confirmed",
     fulfillment: "pickup",
     price_cents: 6500,
