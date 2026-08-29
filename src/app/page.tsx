@@ -61,7 +61,7 @@ export default function TodayPage() {
         )}
         <p>
           <Link className="text-link" href="/schedule">
-            Open the week →
+            See upcoming orders →
           </Link>
         </p>
       </section>
