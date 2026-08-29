@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { addDaysKey, onWeekday, weekKeys } from "./dates";
+import { addDaysKey, onWeekday } from "./dates";
 import {
   groupByDay,
   parseAnchor,
@@ -23,7 +23,15 @@ test("zoom defaults to week and only accepts day/week/month", () => {
 test("day / week / month are one timeline range, not three calendars", () => {
   const monday = "2026-08-24";
   assert.deepEqual(rangeDays("2026-08-29", "day"), ["2026-08-29"]);
-  assert.deepEqual(rangeDays("2026-08-29", "week"), weekKeys("2026-08-29"));
+  assert.deepEqual(rangeDays("2026-08-29", "week"), [
+    "2026-08-29",
+    "2026-08-30",
+    "2026-08-31",
+    "2026-09-01",
+    "2026-09-02",
+    "2026-09-03",
+    "2026-09-04",
+  ]);
   const month = rangeDays("2026-08-29", "month");
   assert.equal(month.length, 28);
   assert.equal(month[0], monday);
@@ -39,7 +47,7 @@ test("prev/next step by the current zoom unit", () => {
 test("headings stay kitchen-short", () => {
   const now = new Date(2026, 7, 29);
   assert.equal(rangeHeading(["2026-08-29"], "day", now), "Today");
-  assert.equal(rangeHeading(weekKeys("2026-08-29"), "week", now), "This week");
+  assert.equal(rangeHeading(rangeDays("2026-08-29", "week"), "week", now), "This week");
   assert.equal(rangeHeading(rangeDays("2026-09-21", "month"), "month", now), "Further out");
   assert.match(rangeLabel(["2026-08-24", "2026-08-30"]), /Aug/);
 });
