@@ -84,7 +84,13 @@ test("seed data fills today and tomorrow so the board is not empty", () => {
   const tomorrows = ordersBetween(dayStart(tomorrow), dayEndExclusive(tomorrow));
   assert.ok(todays.length >= 2, "today should have sample orders");
   assert.ok(tomorrows.length >= 2, "tomorrow should have sample orders");
-  assert.ok(listCustomers().length >= 5);
+  const fourWeeks = ordersBetween(dayStart(today), dayEndExclusive(addDaysKey(today, 28)));
+  assert.ok(fourWeeks.length >= 15, "the upcoming book should be busy enough to zoom out");
+  assert.ok(
+    fourWeeks.some((order) => order.due_at >= dayStart(addDaysKey(today, 21))),
+    "sample orders should reach at least three weeks out",
+  );
+  assert.ok(listCustomers().length >= 8);
   assert.ok(getOrder(todays[0].id));
   const first = listCustomers()[0];
   updateCustomer(first.id, {

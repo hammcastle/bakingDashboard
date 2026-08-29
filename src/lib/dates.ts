@@ -103,3 +103,28 @@ export function formatWeekdayTime(stamp: string): string {
   const weekday = date.toLocaleDateString(undefined, { weekday: "short" });
   return `${weekday} ${formatTime(stamp)}`;
 }
+
+export function weekdayShort(key: string): string {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: "short" });
+}
+
+export function formatMonthDay(key: string): string {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/** Sunday = 0 … Saturday = 6, matching `Date#getDay`. */
+export function weekdayIndex(key: string): number {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d).getDay();
+}
+
+/** The next date with this weekday (0–6). `weeksOut` skips additional weeks. Same weekday on `from` is week 0. */
+export function onWeekday(from: string, weekday: number, weeksOut = 0): string {
+  const delta = (weekday - weekdayIndex(from) + 7) % 7;
+  return addDaysKey(from, delta + weeksOut * 7);
+}

@@ -478,6 +478,143 @@ textarea { min-height: 88px; resize: vertical; }
   gap: 8px;
 }
 
+.zoom-seg {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 4px;
+  background: var(--paper);
+  padding: 4px;
+  border-radius: 999px;
+  margin-bottom: 12px;
+}
+.zoom-seg a {
+  text-align: center;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 999px;
+  padding: 0.6rem 0.4rem;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+.zoom-seg a.active {
+  background: var(--cocoa);
+  color: var(--flour);
+  box-shadow: var(--shadow);
+}
+
+.timeline-nav { margin-bottom: 14px; }
+
+.order-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: var(--flour);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  text-decoration: none;
+  color: inherit;
+}
+.order-chip-body {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.order-chip-body strong {
+  font-size: 0.98rem;
+}
+.order-chip-items {
+  display: block;
+  color: var(--cocoa-soft);
+  font-size: 0.88rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chip-pip {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.month-cal {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin: 4px 0 16px;
+}
+.month-dow {
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cocoa-soft);
+  padding-bottom: 2px;
+}
+.month-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 54px;
+  padding: 4px 2px;
+  border-radius: 12px;
+  background: var(--flour);
+  border: 1px solid var(--line);
+  text-decoration: none;
+  color: inherit;
+}
+.month-cell.quiet {
+  background: transparent;
+  box-shadow: none;
+  color: var(--cocoa-soft);
+}
+.month-cell.has-orders {
+  box-shadow: var(--shadow);
+}
+.month-cell.today {
+  border-color: var(--copper);
+  box-shadow: 0 0 0 1.5px var(--copper);
+}
+.month-num {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  line-height: 1;
+}
+.month-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 12px;
+}
+.month-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--copper);
+}
+.month-dots b {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--copper-deep);
+  margin-left: 1px;
+}
+.month-empty { font-size: 0.7rem; opacity: 0.45; }
+
+.week-day .section-title a {
+  color: inherit;
+  text-decoration: none;
+}
+
 @media (min-width: 720px) {
   .shell { padding-top: 20px; }
   .page-title { font-size: 2.4rem; }

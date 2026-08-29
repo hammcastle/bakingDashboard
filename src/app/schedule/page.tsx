@@ -1,74 +1,143 @@
 import Link from "next/link";
+import { MonthMarks } from "@/components/MonthMarks";
 import { OrderCard } from "@/components/OrderCard";
+import { OrderChip } from "@/components/OrderChip";
 import { WorkTaskCard } from "@/components/WorkTaskCard";
-import {
-  addDaysKey,
-  dayStart,
-  formatDayLabel,
-  formatWeekdayDate,
-  todayKey,
-  weekKeys,
-} from "@/lib/dates";
+import { ZoomControl } from "@/components/ZoomControl";
+import { dayEndExclusive, dayStart, formatDayLabel, todayKey } from "@/lib/dates";
 import { ordersBetween, workBetween } from "@/lib/db";
+import {
+  groupByDay,
+  parseAnchor,
+  parseZoom,
+  rangeDays,
+  rangeHeading,
+  rangeLabel,
+  scheduleHref,
+  shiftAnchor,
+} from "@/lib/timeline";
+import type { OrderView } from "@/lib/types";
 
 export default async function SchedulePage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string }>;
+  searchParams: Promise<{ from?: string; zoom?: string }>;
 }) {
   const params = await searchParams;
   const today = todayKey();
-  const anchor = /^\d{4}-\d{2}-\d{2}$/.test(params.from || "") ? params.from! : today;
-  const days = weekKeys(anchor);
-  const weekStart = days[0];
-  const weekEnd = addDaysKey(days[6], 1);
-  const orders = ordersBetween(dayStart(weekStart), dayStart(weekEnd));
-  const work = workBetween(dayStart(weekStart), dayStart(weekEnd));
-  const prev = addDaysKey(weekStart, -7);
-  const next = addDaysKey(weekStart, 7);
+  const zoom = parseZoom(params.zoom);
+  const anchor = parseAnchor(params.from);
+  const days = rangeDays(anchor, zoom);
+  const start = dayStart(days[0]);
+  const end = dayEndExclusive(days[days.length - 1]);
+  const orders = ordersBetween(start, end);
+  const work = zoom === "day" ? workBetween(start, end) : [];
+  const ordersByDay = groupByDay(orders, (order) => order.due_at);
+  const workByDay = groupByDay(work, (task) => task.scheduled_at);
+  const prev = shiftAnchor(anchor, zoom, -1);
+  const next = shiftAnchor(anchor, zoom, 1);
+  const lede =
+    zoom === "day"
+      ? "Starter, mix, form, proof, bake, then pickup. Zoom out to see the book."
+      : zoom === "week"
+        ? "Orders by due time. Tighten in for the work steps."
+        : "Each mark is a due day. Tap a day to tighten in.";
 
   return (
     <main>
-      <p className="page-kicker">Schedule</p>
-      <h1 className="page-title">This week</h1>
+      <p className="page-kicker">Upcoming</p>
+      <h1 className="page-title">{rangeHeading(days, zoom)}</h1>
       <p className="lede">
-        {formatWeekdayDate(days[0])} – {formatWeekdayDate(days[6])}. Work steps first, then pickups.
+        {rangeLabel(days)}. {lede}
       </p>
-      <div className="row-between" style={{ marginBottom: 12 }}>
-        <Link className="btn btn-ghost btn-small" href={`/schedule?from=${prev}`}>
-          Prev week
+      <ZoomControl zoom={zoom} from={anchor} />
+      <div className="row-between timeline-nav">
+        <Link className="btn btn-ghost btn-small" href={scheduleHref(zoom, prev)}>
+          Prev
         </Link>
-        <Link className="btn btn-ghost btn-small" href="/schedule">
-          This week
+        <Link className="btn btn-ghost btn-small" href={scheduleHref(zoom, today)}>
+          Now
         </Link>
-        <Link className="btn btn-ghost btn-small" href={`/schedule?from=${next}`}>
-          Next week
+        <Link className="btn btn-ghost btn-small" href={scheduleHref(zoom, next)}>
+          Next
         </Link>
       </div>
-      <div className="chips">
-        {days.map((day) => (
-          <a key={day} className={`chip ${day === today ? "active" : ""}`} href={`#day-${day}`}>
-            {formatDayLabel(day)}
-          </a>
-        ))}
-      </div>
-      {days.map((day) => {
-        const dayWork = work.filter((task) => task.scheduled_at.startsWith(day));
-        const dayOrders = orders.filter((order) => order.due_at.startsWith(day));
-        return (
-          <section key={day} id={`day-${day}`} className={`week-day ${day === today ? "today" : ""}`}>
-            <h2 className="section-title">
-              {formatDayLabel(day)}
-              <span className="muted">
-                {dayWork.length} work · {dayOrders.length} pickup
-              </span>
-            </h2>
-            {dayWork.length ? dayWork.map((task) => <WorkTaskCard key={task.id} task={task} />) : null}
-            {dayOrders.length ? dayOrders.map((order) => <OrderCard key={order.id} order={order} />) : null}
-            {!dayWork.length && !dayOrders.length ? <p className="muted">Quiet day.</p> : null}
-          </section>
-        );
-      })}
+
+      {zoom === "month" ? (
+        <MonthView days={days} byDay={ordersByDay} today={today} total={orders.length} />
+      ) : null}
+
+      {zoom === "week"
+        ? days.map((day) => {
+            const dayOrders = ordersByDay.get(day) || [];
+            return (
+              <section key={day} id={`day-${day}`} className={`week-day ${day === today ? "today" : ""}`}>
+                <h2 className="section-title">
+                  <Link href={scheduleHref("day", day)}>{formatDayLabel(day)}</Link>
+                  <span className="muted">
+                    {dayOrders.length} {dayOrders.length === 1 ? "order" : "orders"}
+                  </span>
+                </h2>
+                {dayOrders.length ? dayOrders.map((order) => <OrderChip key={order.id} order={order} />) : (
+                  <p className="muted">Quiet day.</p>
+                )}
+              </section>
+            );
+          })
+        : null}
+
+      {zoom === "day"
+        ? days.map((day) => {
+            const dayWork = workByDay.get(day) || [];
+            const dayOrders = ordersByDay.get(day) || [];
+            return (
+              <section key={day} id={`day-${day}`} className={`week-day ${day === today ? "today" : ""}`}>
+                <h2 className="section-title">
+                  Work
+                  <span className="muted">
+                    {dayWork.length} steps · {dayOrders.length} pickup
+                  </span>
+                </h2>
+                {dayWork.length ? dayWork.map((task) => <WorkTaskCard key={task.id} task={task} />) : (
+                  <p className="muted">No mix, shape, or bake steps land this day.</p>
+                )}
+                <h2 className="section-title">Pickup / delivery</h2>
+                {dayOrders.length ? dayOrders.map((order) => <OrderCard key={order.id} order={order} />) : (
+                  <p className="muted">Nothing due this day.</p>
+                )}
+              </section>
+            );
+          })
+        : null}
     </main>
+  );
+}
+
+function MonthView({
+  days,
+  byDay,
+  today,
+  total,
+}: {
+  days: string[];
+  byDay: Map<string, OrderView[]>;
+  today: string;
+  total: number;
+}) {
+  const busy = days.filter((day) => (byDay.get(day) || []).length > 0);
+  return (
+    <>
+      <div className="grid-2" style={{ marginBottom: 12 }}>
+        <div className="stat">
+          <b>{total}</b>
+          <span>orders in view</span>
+        </div>
+        <div className="stat">
+          <b>{busy.length}</b>
+          <span>busy days</span>
+        </div>
+      </div>
+      <MonthMarks days={days} byDay={byDay} today={today} />
+    </>
   );
 }
