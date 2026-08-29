@@ -10,6 +10,7 @@ import {
   rangeHeading,
   rangeLabel,
   shiftAnchor,
+  summarizeDayItems,
 } from "./timeline";
 
 test("zoom defaults to week and only accepts day/week/month", () => {
@@ -78,4 +79,28 @@ test("parseAnchor rejects junk and keeps a real date", () => {
 
 test("shiftAnchor stays on the same day-of-week for week and month", () => {
   assert.equal(addDaysKey(shiftAnchor("2026-08-26", "week", 1), -7), "2026-08-26");
+});
+
+test("day item summary totals the same product across people and skips cancelled", () => {
+  const line = (id: number, description: string, quantity: number) => ({
+    id,
+    order_id: id,
+    description,
+    quantity,
+    sort_order: 0,
+  });
+  const totals = summarizeDayItems([
+    {
+      status: "confirmed",
+      items: [line(1, "Sourdough loaf", 2), line(2, "Focaccia", 1)],
+    },
+    { status: "baking", items: [line(3, "sourdough loaf", 1)] },
+    { status: "cancelled", items: [line(4, "Sourdough loaf", 6)] },
+    { status: "inquiry", items: [line(5, "Focaccia", 1), line(6, "  ", 2)] },
+    { status: "confirmed", items: [line(7, "6-inch chocolate birthday cake", 1)] },
+  ]);
+  assert.deepEqual(
+    totals.map((row) => `${row.quantity}× ${row.description}`),
+    ["3× Sourdough loaf", "2× Focaccia", "1× 6-inch chocolate birthday cake"],
+  );
 });

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DayItemSummary } from "@/components/DayItemSummary";
 import { MonthMarks } from "@/components/MonthMarks";
 import { OrderCard } from "@/components/OrderCard";
 import { OrderChip } from "@/components/OrderChip";
@@ -15,6 +16,7 @@ import {
   rangeLabel,
   scheduleHref,
   shiftAnchor,
+  summarizeDayItems,
 } from "@/lib/timeline";
 import type { OrderView } from "@/lib/types";
 
@@ -40,7 +42,7 @@ export default async function SchedulePage({
     zoom === "day"
       ? "Starter, mix, form, proof, bake, then pickup. Zoom out to see the book."
       : zoom === "week"
-        ? "Orders by due time. Tighten in for the work steps."
+        ? "Who ordered what, and what to bake that day. Tighten in for the work steps."
         : "Each mark is a due day. Tap a day to tighten in.";
 
   return (
@@ -70,6 +72,7 @@ export default async function SchedulePage({
       {zoom === "week"
         ? days.map((day) => {
             const dayOrders = ordersByDay.get(day) || [];
+            const bake = summarizeDayItems(dayOrders);
             return (
               <section key={day} id={`day-${day}`} className={`week-day ${day === today ? "today" : ""}`}>
                 <h2 className="section-title">
@@ -78,6 +81,7 @@ export default async function SchedulePage({
                     {dayOrders.length} {dayOrders.length === 1 ? "order" : "orders"}
                   </span>
                 </h2>
+                <DayItemSummary items={bake} />
                 {dayOrders.length ? dayOrders.map((order) => <OrderChip key={order.id} order={order} />) : (
                   <p className="muted">Quiet day.</p>
                 )}
