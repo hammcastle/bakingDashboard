@@ -15,8 +15,10 @@ after(() => { closeDb(); fs.rmSync(dir, { recursive: true, force: true }); });
 
 function worker(operation: string, reference: string): Promise<{ ok: boolean; error?: string }> {
   // Separate processes and connections exercise actual SQLite write contention.
-  const script = `import { ingestFixture, reviewRequest, setRequestDate } from './src/lib/requests.ts';
-    import { closeDb } from './src/lib/db.ts';
+  // Use tsx's CommonJS hook: minimum Node 22 cannot infer named ESM exports
+  // from this package's CommonJS-transformed TypeScript in an eval module.
+  const script = `const { ingestFixture, reviewRequest, setRequestDate } = require('./src/lib/requests.ts');
+    const { closeDb } = require('./src/lib/db.ts');
     const { operation, snapshot } = JSON.parse(process.argv[1]);
     try {
       if (operation === 'ingest') ingestFixture(snapshot);
@@ -26,7 +28,7 @@ function worker(operation: string, reference: string): Promise<{ ok: boolean; er
     } catch(error) { console.log(JSON.stringify({ok:false,error:error.message})); }
     finally { closeDb(); }`;
   return new Promise((resolve, reject) => {
-    execFile(process.execPath, ["--import", "tsx", "--input-type=module", "-e", script, JSON.stringify({ operation, snapshot: snapshot(reference) })], { cwd: process.cwd(), env: process.env, timeout: 15000 }, (error, stdout) => {
+    execFile(process.execPath, ["--require", "tsx/cjs", "-e", script, JSON.stringify({ operation, snapshot: snapshot(reference) })], { cwd: process.cwd(), env: process.env, timeout: 15000 }, (error, stdout) => {
       if (error) reject(error);
       else { try { resolve(JSON.parse(stdout.trim())); } catch(cause) { reject(cause); } }
     });
