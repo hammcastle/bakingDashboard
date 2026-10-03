@@ -4,6 +4,8 @@ Operations dashboard for **Cassandra's bakery**, used by Joshua Hamm to help her
 
 Coding agents: start at [AGENTS.md](./AGENTS.md) (requirements and architecture live under `docs/`).
 
+Local incoming-request rehearsal and the prioritized integration plan: [docs/ORDER_INTAKE_MILESTONE.md](docs/ORDER_INTAKE_MILESTONE.md). This is fictional-data-only and disabled by default; public intake, owner authentication and alerts are not connected.
+
 It tracks customers, orders, and the bake calendar. The week is scheduled as **work** (feed starter, mix, form, proof, bake), not only pickups. It is meant to be used on a phone in a kitchen: large tap targets, a one-tap status advance, and a **+ Order** button on every screen.
 
 ## Run locally

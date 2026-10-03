@@ -6,6 +6,8 @@ export function openSqlite(file: string): SqlDatabase {
   const database = new DatabaseSync(file, {
     enableForeignKeyConstraints: true,
   });
+  // Let a competing local process finish its bounded synchronous transaction.
+  database.exec("PRAGMA busy_timeout = 5000");
   database.exec("PRAGMA journal_mode = WAL");
   return database;
 }
