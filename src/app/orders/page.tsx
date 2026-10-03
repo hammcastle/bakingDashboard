@@ -31,6 +31,7 @@ export default async function OrdersPage({
           + New
         </Link>
       </div>
+      <Link href="/requests" className="text-link">Review incoming requests</Link>
       <div className="chips">
         {FILTERS.map((filter) => (
           <Link

@@ -17,6 +17,16 @@
   --font-body: var(--font-figtree), "Segoe UI", sans-serif;
 }
 
+.request-notice { padding: 14px; margin: 16px 0; background: var(--paper-deep); border-radius: var(--radius); }
+.request-capacity { margin-top: 18px; }
+.request-card h2, .request-capacity h2 { font-size: 1.2rem; margin: 0; }
+.request-card .meta, .request-card details { overflow-wrap: anywhere; }
+.request-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin: 14px 0; }
+.request-controls label { display: grid; gap: 6px; }
+.request-controls input { min-height: 44px; padding: 8px; max-width: 100%; border: 1px solid var(--line); border-radius: 8px; background: var(--flour); }
+.request-note { flex-basis: 100%; min-width: 0; }
+.request-card summary { min-height: 44px; padding-top: 12px; cursor: pointer; }
+
 * { box-sizing: border-box; }
 
 html, body {

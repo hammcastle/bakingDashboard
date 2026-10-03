@@ -1,0 +1,44 @@
+name: Validate Ovenboard
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ovenboard-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Node ${{ matrix.node }} validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22.13.0', '26']
+    env:
+      BAKERY_SKIP_SEED: '1'
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: ${{ matrix.node }}
+          package-manager-cache: false
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --registry=https://registry.npmjs.org
+      - name: Test data, timeline and intake races
+        run: npm test
+      - name: Check types
+        run: npx --no-install tsc --noEmit
+      - name: Build
+        run: npm run build
+      - name: Audit dependencies
+        run: npm audit --audit-level=moderate --registry=https://registry.npmjs.org
